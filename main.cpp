@@ -4,10 +4,12 @@
 #include <algorithm>
 #include <sys/time.h>
 #include <functional>
-
+#include <omp.h>
 
 #define DTYPE int
-const size_t num_data (1<<24);
+#define NUM_THREADS (8)
+#define THRESHOLD (1<<13)
+const size_t num_data (1<<25);
 auto ascent = [] (DTYPE a, DTYPE b) {return a<b;};
 auto descent = [] (DTYPE a, DTYPE b) {return a>b;};
 
@@ -32,6 +34,7 @@ int main(void) {
     std::sort(gt.begin(), gt.end());
 
     std::cout << "Parallel Bitonic Sorting start with data[0:" << data.size()-1 << "]\n";
+    std::cout << "--- Total memory size: " << data.size()*sizeof(DTYPE)/1024.0/1024.0/1024.0 << " GB " << std::endl;
     timeval time_start, time_end;
     gettimeofday(&time_start, NULL);
     bitonic_sort(data);
@@ -44,20 +47,38 @@ int main(void) {
 }
 
 void bitonic_sort(std::vector<DTYPE>& data) {
-    bitonic_generate(data, 0, data.size()-1);
-    bitonic_merge(data, 0, data.size()-1, ascent);
+
+    #pragma omp parallel num_threads(NUM_THREADS)
+    {
+        #pragma omp single
+        {
+            bitonic_generate(data, 0, data.size()-1);
+            bitonic_merge(data, 0, data.size()-1, ascent);   
+        }
+        
+    }
 }
 
 void bitonic_generate(std::vector<DTYPE>& data, size_t start, size_t end) {
-    
+
     if (start == end)
         return;
 
     size_t mid = (start+end)/2+1;
+
+    #pragma omp task shared(data) firstprivate(mid) if (end-start > THRESHOLD)
     bitonic_generate(data, start, mid-1);
+
     bitonic_generate(data, mid, end);
+
+    #pragma omp taskwait
+
+    #pragma omp task shared(data) firstprivate(mid) if (end-start > THRESHOLD)
     bitonic_merge(data, start, mid-1, ascent);
+
     bitonic_merge(data, mid, end, descent);
+
+    #pragma omp taskwait
 }
 
 template<typename F> void bitonic_merge(std::vector<DTYPE>& data, size_t start, size_t end, F comparer) {
@@ -65,8 +86,13 @@ template<typename F> void bitonic_merge(std::vector<DTYPE>& data, size_t start, 
         return;
     size_t mid = (start+end)/2+1;
     bitonic_split(data, start, end, comparer);
+
+    #pragma omp task shared(data) firstprivate(mid) if (end-start > THRESHOLD)
     bitonic_merge(data, start, mid-1, comparer);
+
     bitonic_merge(data, mid, end, comparer);
+
+    #pragma omp taskwait
 }   
 
 template<typename F> void bitonic_split(std::vector<DTYPE>& data, size_t start, size_t end, F comparer) {
