@@ -1,0 +1,17 @@
+# CMake bianry version
+cmake_minimum_required(VERSION 3.10)
+
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
+
+# Proejct info
+project(
+    ParallelBitomicSort
+    VERSION 1.0
+    DESCRIPTION "Parallel Bitomic Sort"
+)
+
+set(APP_NAME app.out)
+set(MAIN_FILE main.cpp)
+
+add_executable (${APP_NAME} ${MAIN_FILE})
