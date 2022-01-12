@@ -18,3 +18,9 @@ Parallel Bitonic Sort algorithm implementation with OpenMP
     3. make  
 
 ### 3. Implementation details
+- Algorithm detail
+    - From Udacity program "High Performance Computing" by Rich Vuduc (Georgia Tech, CS 6220)
+    - Bitonic sort algorithm consists of two phases
+        1. Bitonic sequence generation: converting any sequences to bitonic sequences
+        2. Bitonic merge: a bitonic sequence sorted in ascending order
+- Parallel optimization strategy
